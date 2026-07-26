@@ -1,0 +1,16 @@
+seed: 42
+dataset:
+  root: datasets/visa
+  category: pcb1
+  train_batch_size: 1
+  eval_batch_size: 8
+  num_workers: 4
+model:
+  model_size: small
+  imagenet_dir: datasets/imagenette
+trainer:
+  accelerator: auto
+  devices: 1
+  max_epochs: 1000
+  max_steps: 70000
+output_dir: projects/visionqc/results/efficientad_pcb1

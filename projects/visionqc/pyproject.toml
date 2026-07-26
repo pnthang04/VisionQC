@@ -1,0 +1,12 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "visionqc"
+version = "0.1.0"
+description = "EfficientAD baseline for PCB anomaly detection on VisA"
+requires-python = ">=3.10"
+
+[project.scripts]
+visionqc = "visionqc.pipeline:main"

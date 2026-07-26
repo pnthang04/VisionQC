@@ -1,0 +1,3 @@
+# VisionQC server training (NVIDIA CUDA 12.6)
+-e .[openvino,cu126]
+-e projects/visionqc

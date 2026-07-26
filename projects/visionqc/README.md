@@ -58,6 +58,18 @@ bash projects/visionqc/setup.sh
 2. Có `nvidia-smi` nhưng chưa có PyTorch GPU: cài PyTorch CUDA 12.6 từ extra `cu126` của repository.
 3. Không có NVIDIA GPU: cài backend CPU.
 
+Nếu server không dùng `uv`, có thể cài bằng `requirements.txt` từ thư mục gốc:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+`requirements.txt` mặc định dành cho NVIDIA/CUDA 12.6. `setup.sh` vẫn là cách khuyến nghị vì có thể tự chọn GPU
+hoặc CPU.
+
 Xác minh môi trường:
 
 ```bash

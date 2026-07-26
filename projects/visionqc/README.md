@@ -19,6 +19,54 @@ Baseline hiện chưa có distribution alignment hoặc thay đổi mã nguồn 
 
 Cấu hình nằm tại `projects/visionqc/configs/efficientad_pcb1.yaml`. CLI được cài với tên `visionqc`.
 
+## Triển khai trên server Linux
+
+Yêu cầu:
+
+- Linux x86_64;
+- Git, `curl` và Python 3.10 trở lên;
+- đủ dung lượng cho source, VisA, ImageNette, weights và checkpoints;
+- NVIDIA driver hoạt động nếu train bằng GPU;
+- Internet để tải dependencies và dữ liệu ở lần chạy đầu.
+
+Clone và checkout đúng branch:
+
+```bash
+git clone https://github.com/pnthang04/VisionQC.git
+cd VisionQC
+git checkout main
+git pull --ff-only origin main
+```
+
+Kiểm tra server trước khi setup:
+
+```bash
+python3 --version
+df -h .
+nvidia-smi
+```
+
+Setup:
+
+```bash
+bash projects/visionqc/setup.sh
+```
+
+`setup.sh` xử lý ba trường hợp:
+
+1. PyTorch CUDA đã hoạt động (như Kaggle): tái sử dụng môi trường GPU hiện có.
+2. Có `nvidia-smi` nhưng chưa có PyTorch GPU: cài PyTorch CUDA 12.6 từ extra `cu126` của repository.
+3. Không có NVIDIA GPU: cài backend CPU.
+
+Xác minh môi trường:
+
+```bash
+.venv/bin/python -c "import anomalib, torch; print('Anomalib:', anomalib.__version__); print('PyTorch:', torch.__version__); print('CUDA:', torch.version.cuda); print('GPU:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+.venv/bin/python -m unittest discover projects/visionqc/tests
+```
+
+Không bắt đầu full training nếu unit test lỗi hoặc `GPU: False` trong khi server được cấp GPU.
+
 ## Chạy trên Kaggle
 
 Trong Kaggle Notebook:
@@ -162,3 +210,26 @@ projects/visionqc/
 - **No checkpoint found**: chạy train trước hoặc truyền đường dẫn chính xác bằng `--checkpoint`.
 - **No space left on device**: xóa output/checkpoint cũ và cache không còn sử dụng.
 - **Windows không chạy được `.sh`**: pipeline này nhắm đến Kaggle/Linux; dùng WSL hoặc Git Bash nếu cần chạy local.
+
+## Checklist giao cho agent trên server
+
+Có thể giao nguyên yêu cầu sau cho agent:
+
+```text
+Đứng tại thư mục gốc repository VisionQC.
+
+1. Đọc AGENTS.md, projects/visionqc/README.md, pyproject.toml và
+   projects/visionqc/configs/efficientad_pcb1.yaml.
+2. Không sửa mã nguồn lõi Anomalib.
+3. Kiểm tra git status, commit hiện tại, Python, dung lượng ổ đĩa, nvidia-smi và NVIDIA driver.
+4. Chạy bash projects/visionqc/setup.sh.
+5. Xác nhận Anomalib 2.6.0, PyTorch, CUDA, torch.cuda.is_available() và tên GPU.
+6. Chạy unit test:
+   .venv/bin/python -m unittest discover projects/visionqc/tests
+7. Chạy .venv/bin/visionqc prepare và báo cáo chính xác số ảnh/mask/batch shape.
+8. Chạy bash projects/visionqc/smoke_test.sh. Không chạy full train nếu smoke test fail.
+9. Nếu smoke pass, chạy bash projects/visionqc/train.sh.
+10. Sau train, chạy bash projects/visionqc/evaluate.sh.
+11. Báo cáo checkpoint, metrics.json, anomaly_scores.csv, heatmaps và lỗi còn lại.
+12. Không công bố metric giả; chỉ báo cáo kết quả được sinh từ lần evaluate thực tế.
+```

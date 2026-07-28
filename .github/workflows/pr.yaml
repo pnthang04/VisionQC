@@ -4,7 +4,6 @@
 # pull requests using reusable workflows.
 #
 # Key Features:
-# - PR title validation (conventional commits)
 # - Code quality validation
 # - Test suite execution
 # - Security scanning
@@ -15,27 +14,23 @@
 # Jobs are grouped by scope and always-run vs path-gated:
 #
 # [Always run on every non-draft PR]
-# 1. PR Title Validation:
-#    - Conventional commit format verification
-#    - Ensures proper changelog generation
-#
-# 2. Quality Checks:
+# 1. Quality Checks:
 #    - Covers library (src/) and application/ via prek workspace mode
 #    - Code style, type checking, pre-commit hooks
 #
-# 3. Security:
+# 2. Security:
 #    - Changed files scanning
 #    - Vulnerability detection
 #    - Security report generation
 #
 # [Library path-gated: src/, tests/, examples/, tools/, pyproject.toml, ...]
-# 4. Testing:
+# 3. Testing:
 #    - Unit test execution
 #    - Integration testing
 #    - Coverage reporting
 #
 # [Application path-gated: application/**, .github/**]
-# 5. Docker Image Build:
+# 4. Docker Image Build:
 #    - Determines if docker images need to be built based on event type and changed paths
 #    - Builds and uploads docker images as artifacts
 #
@@ -49,11 +44,9 @@
 # 3. Merge group events
 #
 # Note:
-# - PR title validation only runs on actual pull requests
-# - Individual commit messages are not validated (since PRs are squash merged)
-# - Other checks run in parallel with PR title validation for faster feedback
-# - PR title can be fixed later while tests are already running
-# - Configured to cancel outdated runs when new commits are pushed
+# - PR titles are intentionally not required to follow Conventional Commits.
+# - Commitizen remains available for release/version automation.
+# - Configured to cancel outdated runs when new commits are pushed.
 
 name: PR Checks
 
@@ -71,15 +64,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # PR title validation - only runs on actual pull requests, not merge groups
-  pr-title-check:
-    if: github.event_name == 'pull_request'
-    uses: ./.github/workflows/_reusable-pr-title-check.yaml
-    permissions:
-      contents: read # Required by the called workflow to checkout the repository
-    with:
-      python-version: "3.10"
-
   # Code quality - covers both library (src/) and application/ via prek workspace mode
   quality:
     if: github.event.pull_request.draft != true
@@ -181,7 +165,13 @@ jobs:
       - integration-tests
     runs-on: ubuntu-latest
     env:
-      CHECKS: ${{ join(needs.*.result, ' ') }}
+      # Keep this list explicit so unrelated checks (such as optional PR metadata
+      # validation) cannot make the required library status fail.
+      CHECKS: >-
+        ${{ needs.check-library-paths.result }}
+        ${{ needs.quality.result }}
+        ${{ needs.unit-tests.result }}
+        ${{ needs.integration-tests.result }}
     if: always() && !cancelled()
     steps:
       - name: Harden the runner (audit all outbound calls)

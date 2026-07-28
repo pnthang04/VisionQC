@@ -21,7 +21,8 @@ repos:
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.8.3
     hooks:
-      # Only enforce branch naming, not commit messages (since we validate PR titles instead)
+      # Keep branch-name validation at pre-push; PR titles and commit messages
+      # are not mandatory local quality checks.
       - id: commitizen-branch
         stages: [pre-push]
 

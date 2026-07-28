@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
 """VisionQC EfficientAD baseline on VisA/pcb1."""
 
 from __future__ import annotations
@@ -11,7 +14,7 @@ from typing import Any
 import torch
 from lightning import seed_everything
 from lightning.pytorch.callbacks import EarlyStopping
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from anomalib.callbacks import ModelCheckpoint
 from anomalib.data import Visa
@@ -38,7 +41,7 @@ class BatchedEfficientAd(EfficientAd):
             datamodule.train_batch_size = configured_batch_size
 
 
-def load_config(path: Path) -> Any:
+def load_config(path: Path) -> DictConfig:
     """Load the baseline configuration and resolve paths from the repository root."""
     config = OmegaConf.load(path)
     config.dataset.root = str(ROOT / config.dataset.root)
@@ -47,12 +50,12 @@ def load_config(path: Path) -> Any:
     return config
 
 
-def make_datamodule(config: Any) -> Visa:
+def make_datamodule(config: DictConfig) -> Visa:
     """Create the official VisA datamodule."""
     return Visa(**OmegaConf.to_container(config.dataset, resolve=True))
 
 
-def make_model(config: Any) -> EfficientAd:
+def make_model(config: DictConfig) -> EfficientAd:
     """Create EfficientAD with detection, localization, F1, and AU-PRO metrics."""
     val_metrics = [
         AUROC(fields=["pred_score", "gt_label"], prefix="image_"),
@@ -77,7 +80,7 @@ def make_model(config: Any) -> EfficientAd:
     return model
 
 
-def make_engine(config: Any, smoke: bool = False) -> Engine:
+def make_engine(config: DictConfig, smoke: bool = False) -> Engine:
     """Create the Anomalib engine."""
     trainer = OmegaConf.to_container(config.trainer, resolve=True)
     callbacks = [
@@ -106,7 +109,7 @@ def make_engine(config: Any, smoke: bool = False) -> Engine:
     return Engine(default_root_dir=config.output_dir, logger=True, callbacks=callbacks, **trainer)
 
 
-def prepare(config: Any) -> Visa:
+def prepare(config: DictConfig) -> Visa:
     """Download, convert, inspect, and report VisA/pcb1."""
     datamodule = make_datamodule(config)
     datamodule.prepare_data()
@@ -128,7 +131,7 @@ def prepare(config: Any) -> Visa:
     return datamodule
 
 
-def json_value(value: Any) -> Any:
+def json_value(value: Any) -> Any:  # noqa: ANN401
     """Convert tensors and paths into JSON-compatible values."""
     if isinstance(value, torch.Tensor):
         value = value.detach().cpu()
@@ -179,6 +182,8 @@ def save_predictions(predictions: list[Any], output_dir: Path) -> None:
     examples_dir.mkdir(parents=True, exist_ok=True)
     for outcome, item in examples.items():
         image = visualizer(item)
+        if isinstance(image, list):
+            image = next((result for result in image if result is not None), None)
         if image is not None:
             image.save(examples_dir / f"{outcome}.png")
 
@@ -194,11 +199,12 @@ def checkpoint_path(output_dir: Path, requested: str | None) -> str:
         raise FileNotFoundError(path)
     checkpoints = sorted(output_dir.rglob("*.ckpt"), key=lambda path: path.stat().st_mtime, reverse=True)
     if not checkpoints:
-        raise FileNotFoundError(f"No checkpoint found under {output_dir}")
+        message = f"No checkpoint found under {output_dir}"
+        raise FileNotFoundError(message)
     return str(checkpoints[0])
 
 
-def run_train(config: Any, resume: str | None, smoke: bool = False) -> None:
+def run_train(config: DictConfig, resume: str | None, smoke: bool = False) -> None:
     """Train and test EfficientAD."""
     datamodule = prepare(config)
     model = make_model(config)
@@ -212,11 +218,12 @@ def run_train(config: Any, resume: str | None, smoke: bool = False) -> None:
     save_metrics(results, output_dir)
     (output_dir / "best_checkpoint.txt").write_text(str(best), encoding="utf-8")
     if smoke:
-        assert best and Path(best).is_file(), "Smoke test did not create a checkpoint"
+        assert best, "Smoke test did not return a checkpoint"
+        assert Path(best).is_file(), "Smoke test did not create a checkpoint"
         print(f"Smoke test passed: {best}")
 
 
-def evaluate(config: Any, checkpoint: str | None) -> None:
+def evaluate(config: DictConfig, checkpoint: str | None) -> None:
     """Evaluate a checkpoint and persist metrics, scores, maps, and examples."""
     datamodule = prepare(config)
     model = make_model(config)
@@ -225,6 +232,9 @@ def evaluate(config: Any, checkpoint: str | None) -> None:
     ckpt = checkpoint_path(output_dir, checkpoint)
     results = engine.test(model=model, datamodule=datamodule, ckpt_path=ckpt)
     predictions = engine.predict(model=model, datamodule=datamodule, ckpt_path=ckpt, return_predictions=True)
+    if predictions is None:
+        message = "Prediction did not return any batches"
+        raise RuntimeError(message)
     output_dir.mkdir(parents=True, exist_ok=True)
     save_metrics(results, output_dir)
     save_predictions(predictions, output_dir)

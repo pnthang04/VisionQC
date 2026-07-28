@@ -11,13 +11,21 @@ Baseline hiện chưa có distribution alignment hoặc thay đổi mã nguồn 
 | Dataset | VisA |
 | Category | `pcb1` |
 | Seed | `42` |
-| Train batch size | `1` |
+| Train batch size | `32` mỗi GPU (`64` effective trên 2 GPU) |
 | Eval batch size | `8` |
-| Accelerator | Tự động chọn GPU/CPU |
-| Giới hạn train | 1.000 epoch hoặc 70.000 step |
+| Validation | Tách 50% từ test gốc, seed `42` |
+| Early stopping | Validation image AUROC, patience `20`, min delta `0.001` |
+| Accelerator | 2 GPU, DDP với hỗ trợ unused teacher parameters |
+| Precision | FP16 mixed precision |
+| Giới hạn train | 1.000 epoch hoặc 1.100 optimizer step (~70.400 sample) |
 | Metrics | Image/pixel AUROC, image/pixel F1, pixel AUPRO |
 
 Cấu hình nằm tại `projects/visionqc/configs/efficientad_pcb1.yaml`. CLI được cài với tên `visionqc`.
+
+Upstream EfficientAD giới hạn batch train bằng `1`. Baseline này dùng subclass cục bộ `BatchedEfficientAd` để
+cho phép batch `32` trên mỗi GPU mà không sửa mã nguồn lõi Anomalib. Đây là cấu hình thử nghiệm khác baseline
+chính thức của EfficientAD; metric không nên được so sánh trực tiếp với kết quả batch `1`.
+Giới hạn `1.100` optimizer step được scale từ baseline `70.000` step batch-1 theo effective batch `64`.
 
 ## Triển khai trên server Linux
 
@@ -131,6 +139,11 @@ Lệnh này tải, giải nén, convert VisA và in:
 Dataset nằm tại `datasets/visa`; ImageNette phụ trợ của EfficientAD nằm tại `datasets/imagenette`. Cả hai đều được
 Git ignore.
 
+Validation được cấu hình bằng `val_split_mode: from_test` và `val_split_ratio: 0.5`: tập test gốc được chia theo
+nhãn thành hai nửa validation/test tách biệt với seed `42`. `image_AUROC` trên validation được dùng để lưu
+checkpoint tốt nhất và dừng sớm nếu không cải thiện ít nhất `0.001` trong `20` epoch liên tiếp. Smoke test không
+bật early stopping.
+
 ## Smoke test
 
 ```bash
@@ -157,7 +170,7 @@ Resume từ checkpoint:
 
 ```bash
 bash projects/visionqc/train.sh \
-  --checkpoint projects/visionqc/results/efficientad_pcb1/EfficientAd/Visa/pcb1/v0/weights/lightning/model.ckpt
+  --checkpoint projects/visionqc/results/efficientad_pcb1/BatchedEfficientAd/Visa/pcb1/v0/lightning_logs/version_0/checkpoints/model-best.ckpt
 ```
 
 Anomalib có thể tạo `v1`, `v2`, ... cho các lần chạy tiếp theo. Dùng đúng checkpoint được ghi trong
@@ -175,7 +188,7 @@ Hoặc chỉ định checkpoint:
 
 ```bash
 bash projects/visionqc/evaluate.sh \
-  --checkpoint projects/visionqc/results/efficientad_pcb1/EfficientAd/Visa/pcb1/v0/weights/lightning/model.ckpt
+  --checkpoint projects/visionqc/results/efficientad_pcb1/BatchedEfficientAd/Visa/pcb1/v0/lightning_logs/version_0/checkpoints/model-best.ckpt
 ```
 
 Kết quả nằm trong `projects/visionqc/results/efficientad_pcb1/`:
@@ -216,7 +229,9 @@ projects/visionqc/
 ## Lỗi thường gặp
 
 - **`GPU: False`**: bật GPU trong Kaggle Settings và restart session.
-- **CUDA out of memory**: giảm `dataset.eval_batch_size` từ `8` xuống `4` hoặc `1`.
+- **CUDA out of memory khi train**: batch `32` cần FP16 và hai GPU trống; kiểm tra tiến trình GPU cũ trước khi
+  giảm `dataset.train_batch_size`.
+- **CUDA out of memory khi evaluate**: giảm `dataset.eval_batch_size` từ `8` xuống `4` hoặc `1`.
 - **Download/hash failure**: kiểm tra Internet của Kaggle rồi chạy lại đúng lệnh; không xóa dataset đã tải dở nếu
   chưa cần.
 - **No checkpoint found**: chạy train trước hoặc truyền đường dẫn chính xác bằng `--checkpoint`.

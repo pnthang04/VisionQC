@@ -2,15 +2,26 @@ seed: 42
 dataset:
   root: datasets/visa
   category: pcb1
-  train_batch_size: 1
+  train_batch_size: 32
   eval_batch_size: 8
   num_workers: 4
+  val_split_mode: from_test
+  val_split_ratio: 0.5
+  seed: 42
 model:
   model_size: small
   imagenet_dir: datasets/imagenette
 trainer:
   accelerator: auto
-  devices: 1
+  devices: 2
+  strategy: ddp_find_unused_parameters_true
+  precision: 16-mixed
   max_epochs: 1000
-  max_steps: 70000
+  max_steps: 1100
+early_stopping:
+  enabled: true
+  monitor: image_AUROC
+  mode: max
+  patience: 20
+  min_delta: 0.001
 output_dir: projects/visionqc/results/efficientad_pcb1

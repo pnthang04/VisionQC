@@ -10,8 +10,10 @@ from typing import Any
 
 import torch
 from lightning import seed_everything
+from lightning.pytorch.callbacks import EarlyStopping
 from omegaconf import OmegaConf
 
+from anomalib.callbacks import ModelCheckpoint
 from anomalib.data import Visa
 from anomalib.engine import Engine
 from anomalib.metrics import AUPRO, AUROC, Evaluator, F1Score
@@ -20,6 +22,20 @@ from anomalib.visualization import ImageVisualizer
 
 ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_CONFIG = ROOT / "projects/visionqc/configs/efficientad_pcb1.yaml"
+
+
+class BatchedEfficientAd(EfficientAd):
+    """Allow batched project training without modifying Anomalib core."""
+
+    def on_train_start(self) -> None:
+        """Run upstream initialization while retaining the configured train loader."""
+        datamodule = self.trainer.datamodule
+        configured_batch_size = datamodule.train_batch_size
+        datamodule.train_batch_size = 1
+        try:
+            super().on_train_start()
+        finally:
+            datamodule.train_batch_size = configured_batch_size
 
 
 def load_config(path: Path) -> Any:
@@ -38,6 +54,9 @@ def make_datamodule(config: Any) -> Visa:
 
 def make_model(config: Any) -> EfficientAd:
     """Create EfficientAD with detection, localization, F1, and AU-PRO metrics."""
+    val_metrics = [
+        AUROC(fields=["pred_score", "gt_label"], prefix="image_"),
+    ]
     metrics = [
         AUROC(fields=["pred_score", "gt_label"], prefix="image_"),
         F1Score(fields=["pred_label", "gt_label"], prefix="image_"),
@@ -46,19 +65,45 @@ def make_model(config: Any) -> EfficientAd:
         AUPRO(fields=["anomaly_map", "gt_mask"], prefix="pixel_", strict=False),
     ]
     output_dir = Path(config.output_dir)
-    return EfficientAd(
+    model = BatchedEfficientAd(
         **OmegaConf.to_container(config.model, resolve=True),
-        evaluator=Evaluator(test_metrics=metrics),
+        evaluator=Evaluator(val_metrics=val_metrics, test_metrics=metrics),
         visualizer=ImageVisualizer(output_dir=output_dir / "heatmaps"),
     )
+    # These modules are already part of state_dict. Keeping their live objects
+    # in hyperparameters makes DDP checkpoints try to pickle process locks.
+    model.hparams.pop("evaluator", None)
+    model.hparams.pop("visualizer", None)
+    return model
 
 
 def make_engine(config: Any, smoke: bool = False) -> Engine:
     """Create the Anomalib engine."""
     trainer = OmegaConf.to_container(config.trainer, resolve=True)
+    callbacks = [
+        ModelCheckpoint(
+            filename="model-best",
+            monitor=config.early_stopping.monitor,
+            mode=config.early_stopping.mode,
+            save_top_k=1,
+            save_last=True,
+            auto_insert_metric_name=False,
+        ),
+    ]
+    if config.early_stopping.enabled and not smoke:
+        callbacks.append(
+            EarlyStopping(
+                monitor=config.early_stopping.monitor,
+                mode=config.early_stopping.mode,
+                patience=config.early_stopping.patience,
+                min_delta=config.early_stopping.min_delta,
+                check_finite=True,
+                verbose=True,
+            ),
+        )
     if smoke:
         trainer.update(max_epochs=1, max_steps=2, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2)
-    return Engine(default_root_dir=config.output_dir, logger=True, **trainer)
+    return Engine(default_root_dir=config.output_dir, logger=True, callbacks=callbacks, **trainer)
 
 
 def prepare(config: Any) -> Visa:

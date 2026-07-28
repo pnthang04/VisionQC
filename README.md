@@ -86,6 +86,32 @@ Kết quả test của checkpoint EfficientAD-medium đã công bố:
 
 Tập test độc lập với tập validation dùng cho early stopping và lựa chọn checkpoint.
 
+### RobustAD PCB benchmark
+
+EfficientAD-medium được train trên source domain của RobustAD PCB. Checkpoint tốt nhất được chọn bằng
+`image_AUROC` trên 20% synthetic validation, với early stopping patience `20` và min delta `0.001`. Sau đó cùng
+một checkpoint được đánh giá độc lập trên sáu test domain:
+
+| Domain  | Image AUROC | Image F1 | Pixel AUROC | Pixel F1 | Pixel AUPRO |
+| ------- | ----------: | -------: | ----------: | -------: | ----------: |
+| `test0` |      0.8221 |   0.5682 |      0.9237 |   0.0010 |      0.6809 |
+| `test1` |      0.5000 |   0.6000 |      0.6878 |   0.0014 |      0.2052 |
+| `test2` |      0.5000 |   0.5000 |      0.7277 |   0.0006 |      0.2539 |
+| `test3` |      0.4917 |   0.6000 |      0.8338 |   0.0021 |      0.5107 |
+| `test4` |      0.5000 |   0.6000 |      0.8205 |   0.0017 |      0.5082 |
+| `test5` |      0.6250 |   0.6000 |      0.8739 |   0.0023 |      0.6213 |
+
+| Metric      | Trung bình 5 shifted domain | ARD so với `test0` |
+| ----------- | --------------------------: | -----------------: |
+| Image AUROC |                      0.5233 |             36.34% |
+| Pixel AUROC |                      0.7888 |             14.61% |
+| Pixel AUPRO |                      0.4198 |             38.34% |
+
+Kết quả cho thấy model hoạt động khá trên source domain nhưng image-level generalization giảm mạnh dưới domain
+shift. Image AUROC của `test1`–`test4` gần mức ngẫu nhiên. Pixel AUROC giữ ổn định hơn, nhưng Pixel F1 rất thấp,
+cho thấy threshold học từ synthetic validation chưa chuyển tốt sang các target domain. Vì vậy đây là baseline
+RobustAD ban đầu, chưa phải kết quả tối ưu.
+
 ## 🖥️ Triển khai trên server Linux
 
 Yêu cầu:

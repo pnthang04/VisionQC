@@ -9,7 +9,7 @@ dataset:
   val_split_ratio: 0.5
   seed: 42
 model:
-  model_size: small
+  model_size: medium
   imagenet_dir: datasets/imagenette
 trainer:
   accelerator: auto

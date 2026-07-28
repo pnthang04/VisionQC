@@ -54,6 +54,7 @@ class ValidationAndEarlyStoppingTest(unittest.TestCase):
         self.assertNotIn("evaluator", model.hparams)
         self.assertNotIn("visualizer", model.hparams)
         self.assertEqual(config.dataset.train_batch_size, 32)
+        self.assertEqual(config.model.model_size, "medium")
         self.assertEqual(config.trainer.devices, 2)
         self.assertEqual(config.trainer.strategy, "ddp_find_unused_parameters_true")
         self.assertEqual(config.trainer.precision, "16-mixed")

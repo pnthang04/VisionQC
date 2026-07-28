@@ -1,13 +1,32 @@
 # VisionQC – Robust PCB Anomaly Detection
 
-Baseline phát hiện và định vị lỗi PCB bằng **EfficientAD-small** trên **VisA/pcb1**, sử dụng Anomalib 2.6.0.
+[![Hugging Face Model](https://img.shields.io/badge/Hugging%20Face-EfficientAD--medium-FFD21E?logo=huggingface&logoColor=000)](https://huggingface.co/thangkt/visionqc-efficientad-medium-pcb1)
+
+Baseline phát hiện và định vị lỗi PCB bằng **EfficientAD-medium** trên **VisA/pcb1**, sử dụng Anomalib 2.6.0.
 Baseline hiện chưa có distribution alignment hoặc thay đổi mã nguồn lõi của Anomalib.
+
+Checkpoint tốt nhất đã được công bố tại
+[`thangkt/visionqc-efficientad-medium-pcb1`](https://huggingface.co/thangkt/visionqc-efficientad-medium-pcb1).
+
+Tải checkpoint bằng Hugging Face CLI:
+
+```bash
+hf download thangkt/visionqc-efficientad-medium-pcb1 model-best.ckpt \
+  --local-dir projects/visionqc/weights/efficientad-medium-pcb1
+```
+
+Evaluate checkpoint đã tải:
+
+```bash
+bash projects/visionqc/evaluate.sh \
+  --checkpoint projects/visionqc/weights/efficientad-medium-pcb1/model-best.ckpt
+```
 
 ## Cấu hình baseline
 
 | Thành phần | Giá trị |
 |---|---|
-| Model | EfficientAD-small |
+| Model | EfficientAD-medium |
 | Dataset | VisA |
 | Category | `pcb1` |
 | Seed | `42` |

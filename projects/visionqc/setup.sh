@@ -7,13 +7,13 @@ export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 
 # Reuse a working system CUDA stack (Kaggle); otherwise install the repository's matching backend.
 if "${PYTHON:-python3}" -c 'import torch; assert torch.cuda.is_available()' 2>/dev/null; then
-  uv venv --python "${PYTHON:-python3}" --system-site-packages
+  uv venv --allow-existing --python "${PYTHON:-python3}" --system-site-packages
   uv pip install --python .venv/bin/python -e '.[openvino]'
 elif command -v nvidia-smi >/dev/null; then
-  uv venv --python "${PYTHON:-python3}"
+  uv venv --allow-existing --python "${PYTHON:-python3}"
   uv pip install --python .venv/bin/python -e '.[openvino,cu126]'
 else
-  uv venv --python "${PYTHON:-python3}"
+  uv venv --allow-existing --python "${PYTHON:-python3}"
   uv pip install --python .venv/bin/python -e '.[openvino,cpu]'
 fi
 uv pip install --python .venv/bin/python --no-deps -e projects/visionqc

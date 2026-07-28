@@ -48,20 +48,20 @@ bash visionqc/evaluate.sh \
 
 ## ⚙️ Cấu hình thí nghiệm
 
-| Thành phần | Giá trị |
-|---|---|
-| Model | EfficientAD-medium |
-| Dataset | VisA |
-| Category | `pcb1` |
-| Seed | `42` |
-| Train batch size | `32` mỗi GPU (`64` effective trên 2 GPU) |
-| Eval batch size | `8` |
-| Validation | Tách 50% từ test gốc, seed `42` |
-| Early stopping | Validation image AUROC, patience `20`, min delta `0.001` |
-| Accelerator | 2 GPU, DDP với hỗ trợ unused teacher parameters |
-| Precision | FP16 mixed precision |
-| Giới hạn train | 1.000 epoch hoặc 1.100 optimizer step (~70.400 sample) |
-| Metrics | Image/pixel AUROC, image/pixel F1, pixel AUPRO |
+| Thành phần       | Giá trị                                                  |
+| ---------------- | -------------------------------------------------------- |
+| Model            | EfficientAD-medium                                       |
+| Dataset          | VisA                                                     |
+| Category         | `pcb1`                                                   |
+| Seed             | `42`                                                     |
+| Train batch size | `32` mỗi GPU (`64` effective trên 2 GPU)                 |
+| Eval batch size  | `8`                                                      |
+| Validation       | Tách 50% từ test gốc, seed `42`                          |
+| Early stopping   | Validation image AUROC, patience `20`, min delta `0.001` |
+| Accelerator      | 2 GPU, DDP với hỗ trợ unused teacher parameters          |
+| Precision        | FP16 mixed precision                                     |
+| Giới hạn train   | 1.000 epoch hoặc 1.100 optimizer step (~70.400 sample)   |
+| Metrics          | Image/pixel AUROC, image/pixel F1, pixel AUPRO           |
 
 Cấu hình nằm tại `visionqc/configs/efficientad_pcb1.yaml`. CLI được cài với tên `visionqc`.
 
@@ -76,13 +76,13 @@ Giới hạn `1.100` optimizer step được scale từ baseline `70.000` step b
 
 Kết quả test của checkpoint EfficientAD-medium đã công bố:
 
-| Metric | Giá trị |
-|---|---:|
-| Image AUROC | **0.9364** |
+| Metric         |    Giá trị |
+| -------------- | ---------: |
+| Image AUROC    | **0.9364** |
 | Image F1 Score | **0.8785** |
-| Pixel AUROC | **0.9883** |
+| Pixel AUROC    | **0.9883** |
 | Pixel F1 Score | **0.6095** |
-| Pixel AUPRO | **0.8686** |
+| Pixel AUPRO    | **0.8686** |
 
 Tập test độc lập với tập validation dùng cho early stopping và lựa chọn checkpoint.
 
@@ -256,16 +256,16 @@ bash visionqc/evaluate.sh \
 
 Kết quả nằm trong `visionqc/results/efficientad_pcb1/`:
 
-| Output | Nội dung |
-|---|---|
-| `metrics.json`, `metrics.csv` | Metrics evaluate thực tế |
-| `anomaly_scores.csv` | Score, ground truth, prediction và outcome từng ảnh |
-| `heatmaps/` | Heatmap/anomaly map |
-| `examples/tn.png` | Ảnh normal dự đoán đúng |
-| `examples/tp.png` | Ảnh anomalous dự đoán đúng |
-| `examples/fp.png` | False positive, nếu có |
-| `examples/fn.png` | False negative, nếu có |
-| `best_checkpoint.txt` | Checkpoint được dùng sau train |
+| Output                        | Nội dung                                            |
+| ----------------------------- | --------------------------------------------------- |
+| `metrics.json`, `metrics.csv` | Metrics evaluate thực tế                            |
+| `anomaly_scores.csv`          | Score, ground truth, prediction và outcome từng ảnh |
+| `heatmaps/`                   | Heatmap/anomaly map                                 |
+| `examples/tn.png`             | Ảnh normal dự đoán đúng                             |
+| `examples/tp.png`             | Ảnh anomalous dự đoán đúng                          |
+| `examples/fp.png`             | False positive, nếu có                              |
+| `examples/fn.png`             | False negative, nếu có                              |
+| `best_checkpoint.txt`         | Checkpoint được dùng sau train                      |
 
 Không có `fp.png` hoặc `fn.png` nghĩa là outcome tương ứng không xuất hiện trong lần evaluate.
 

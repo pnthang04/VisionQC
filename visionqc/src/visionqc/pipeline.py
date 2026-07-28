@@ -20,8 +20,8 @@ from anomalib.metrics import AUPRO, AUROC, Evaluator, F1Score
 from anomalib.models import EfficientAd
 from anomalib.visualization import ImageVisualizer
 
-ROOT = Path(__file__).resolve().parents[4]
-DEFAULT_CONFIG = ROOT / "projects/visionqc/configs/efficientad_pcb1.yaml"
+ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_CONFIG = ROOT / "visionqc/configs/efficientad_pcb1.yaml"
 
 
 class BatchedEfficientAd(EfficientAd):

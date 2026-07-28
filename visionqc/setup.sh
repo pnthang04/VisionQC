@@ -16,5 +16,5 @@ else
   uv venv --allow-existing --python "${PYTHON:-python3}"
   uv pip install --python .venv/bin/python -e '.[openvino,cpu]'
 fi
-uv pip install --python .venv/bin/python --no-deps -e projects/visionqc
+uv pip install --python .venv/bin/python --no-deps -e visionqc
 .venv/bin/python -c 'import anomalib, torch; print("anomalib", anomalib.__version__); print("torch", torch.__version__, "CUDA", torch.version.cuda, "GPU", torch.cuda.is_available())'

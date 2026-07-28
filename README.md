@@ -1,11 +1,33 @@
-# VisionQC – Robust PCB Anomaly Detection
+# VisionQC: Robust PCB Anomaly Detection with EfficientAD
 
-[![Hugging Face Model](https://img.shields.io/badge/Hugging%20Face-EfficientAD--medium-FFD21E?logo=huggingface&logoColor=000)](https://huggingface.co/thangkt/visionqc-efficientad-medium-pcb1)
+[Phạm Ngọc Thắng](https://github.com/pnthang04)
 
-Baseline phát hiện và định vị lỗi PCB bằng **EfficientAD-medium** trên **VisA/pcb1**, sử dụng Anomalib 2.6.0.
-Baseline hiện chưa có distribution alignment hoặc thay đổi mã nguồn lõi của Anomalib.
+![Task](https://img.shields.io/badge/Task-Anomaly%20Detection-c0392b)
+![Domain](https://img.shields.io/badge/Domain-PCB%20Quality%20Control-d35400)
+![Framework](https://img.shields.io/badge/Framework-Anomalib-0078D4)
+![Model](https://img.shields.io/badge/Model-EfficientAD--medium-5A9E1C)
+![GPUs](https://img.shields.io/badge/Training-2×GPU-76B900?logo=nvidia&logoColor=white)
 
-Checkpoint tốt nhất đã được công bố tại
+**Quick Links:** [📦 Dataset](#dataset) | [⚙️ Cấu hình](#configuration) |
+[🚀 Training](#training) | [📊 Kết quả](#results) |
+[🤗 Model](https://huggingface.co/thangkt/visionqc-efficientad-medium-pcb1)
+
+## 🔎 Giới thiệu
+
+VisionQC phát hiện và định vị lỗi bề mặt PCB bằng **EfficientAD-medium** trên tập **VisA/pcb1**, sử dụng
+**Anomalib 2.6.0**. Pipeline hỗ trợ huấn luyện phân tán trên hai GPU, mixed precision, validation độc lập,
+early stopping và tự động lưu checkpoint tốt nhất.
+
+Mục tiêu chính:
+
+- phát hiện PCB bất thường ở mức ảnh;
+- định vị vùng lỗi bằng anomaly map;
+- huấn luyện nhanh với batch size `32` trên mỗi GPU;
+- đánh giá độc lập bằng image/pixel AUROC, F1 và AUPRO.
+
+## 🤗 Checkpoint
+
+Checkpoint tốt nhất được công bố công khai tại
 [`thangkt/visionqc-efficientad-medium-pcb1`](https://huggingface.co/thangkt/visionqc-efficientad-medium-pcb1).
 
 Tải checkpoint bằng Hugging Face CLI:
@@ -22,7 +44,9 @@ bash visionqc/evaluate.sh \
   --checkpoint visionqc/weights/efficientad-medium-pcb1/model-best.ckpt
 ```
 
-## Cấu hình baseline
+<a id="configuration"></a>
+
+## ⚙️ Cấu hình thí nghiệm
 
 | Thành phần | Giá trị |
 |---|---|
@@ -46,7 +70,23 @@ cho phép batch `32` trên mỗi GPU mà không sửa mã nguồn lõi Anomalib.
 chính thức của EfficientAD; metric không nên được so sánh trực tiếp với kết quả batch `1`.
 Giới hạn `1.100` optimizer step được scale từ baseline `70.000` step batch-1 theo effective batch `64`.
 
-## Triển khai trên server Linux
+<a id="results"></a>
+
+## 📊 Kết quả
+
+Kết quả test của checkpoint EfficientAD-medium đã công bố:
+
+| Metric | Giá trị |
+|---|---:|
+| Image AUROC | **0.9364** |
+| Image F1 Score | **0.8785** |
+| Pixel AUROC | **0.9883** |
+| Pixel F1 Score | **0.6095** |
+| Pixel AUPRO | **0.8686** |
+
+Tập test độc lập với tập validation dùng cho early stopping và lựa chọn checkpoint.
+
+## 🖥️ Triển khai trên server Linux
 
 Yêu cầu:
 
@@ -106,7 +146,7 @@ Xác minh môi trường:
 
 Không bắt đầu full training nếu unit test lỗi hoặc `GPU: False` trong khi server được cấp GPU.
 
-## Chạy trên Kaggle
+## ☁️ Chạy trên Kaggle
 
 Trong Kaggle Notebook:
 
@@ -138,7 +178,9 @@ CLI có bốn command:
 .venv/bin/visionqc evaluate
 ```
 
-## Chuẩn bị và kiểm tra VisA
+<a id="dataset"></a>
+
+## 📦 Dữ liệu
 
 Dataset được tải bằng datamodule `anomalib.data.Visa`, không sử dụng downloader riêng:
 
@@ -163,7 +205,7 @@ nhãn thành hai nửa validation/test tách biệt với seed `42`. `image_AURO
 checkpoint tốt nhất và dừng sớm nếu không cải thiện ít nhất `0.001` trong `20` epoch liên tiếp. Smoke test không
 bật early stopping.
 
-## Smoke test
+## 🧪 Smoke test
 
 ```bash
 bash visionqc/smoke_test.sh
@@ -179,7 +221,9 @@ Chạy unit test offline sau khi setup:
 .venv/bin/python -m unittest discover visionqc/tests
 ```
 
-## Train chính thức
+<a id="training"></a>
+
+## 🚀 Train chính thức
 
 ```bash
 bash visionqc/train.sh
@@ -195,7 +239,7 @@ bash visionqc/train.sh \
 Anomalib có thể tạo `v1`, `v2`, ... cho các lần chạy tiếp theo. Dùng đúng checkpoint được ghi trong
 `visionqc/results/efficientad_pcb1/best_checkpoint.txt`.
 
-## Evaluate và sinh heatmap
+## 📈 Evaluate và sinh heatmap
 
 Evaluate checkpoint mới nhất:
 
@@ -225,27 +269,29 @@ Kết quả nằm trong `visionqc/results/efficientad_pcb1/`:
 
 Không có `fp.png` hoặc `fn.png` nghĩa là outcome tương ứng không xuất hiện trong lần evaluate.
 
-## Cấu trúc
+## 🗂️ Cấu trúc dự án
 
 ```text
-visionqc/
-├── configs/efficientad_pcb1.yaml
-├── src/visionqc/
-│   ├── __init__.py
-│   ├── __main__.py
-│   └── pipeline.py
-├── tests/test_pipeline.py
-├── results/
-├── logs/
-├── pyproject.toml
+.
 ├── README.md
-├── setup.sh
-├── smoke_test.sh
-├── train.sh
-└── evaluate.sh
+├── requirements.txt
+└── visionqc/
+    ├── configs/efficientad_pcb1.yaml
+    ├── src/visionqc/
+    │   ├── __init__.py
+    │   ├── __main__.py
+    │   └── pipeline.py
+    ├── tests/test_pipeline.py
+    ├── results/
+    ├── logs/
+    ├── pyproject.toml
+    ├── setup.sh
+    ├── smoke_test.sh
+    ├── train.sh
+    └── evaluate.sh
 ```
 
-## Lỗi thường gặp
+## 🛠️ Lỗi thường gặp
 
 - **`GPU: False`**: bật GPU trong Kaggle Settings và restart session.
 - **CUDA out of memory khi train**: batch `32` cần FP16 và hai GPU trống; kiểm tra tiến trình GPU cũ trước khi
@@ -257,7 +303,7 @@ visionqc/
 - **No space left on device**: xóa output/checkpoint cũ và cache không còn sử dụng.
 - **Windows không chạy được `.sh`**: pipeline này nhắm đến Kaggle/Linux; dùng WSL hoặc Git Bash nếu cần chạy local.
 
-## Checklist giao cho agent trên server
+## ✅ Checklist triển khai
 
 Có thể giao nguyên yêu cầu sau cho agent:
 
